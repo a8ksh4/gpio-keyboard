@@ -7,6 +7,7 @@ from keymap import LAYERS, CHORDS, PINS
 from keys import SHIFTED, CTRLED, CODES
 import collections
 import uinput
+from uinput_translate import UINPUT_ACTIVATE, UINPUT_TRANSLATE
 
 #PINS = [Pin(p, Pin.IN, Pin.PULL_UP) for p in PINS]
 PINS = [Button(p) for p in PINS]
@@ -22,7 +23,6 @@ EVENTS = []
 PENDING_BUTTONS = set()
 OS_SHIFT_PENDING = False
 OS_CTRL_PENDING = False
-INJECT_FUNC = None
 TIMER = None
 DEBUG = False
 DELAYED_INPUT = [] # interface for other tools to ask for something to be typed.
@@ -40,11 +40,6 @@ def printd(foo):
     if DEBUG:
         print(foo) 
 
-def start_timer():
-    global TIMER
-    # TIMER = Timer(mode=Timer.PERIODIC,callback=poll_keys, freq=10)
-    TIMER = th.Timer(0.1, poll_keys)
-    return TIMER
 
 def get_output_key(buttons, layer, tap):
     # global PINS
@@ -74,7 +69,6 @@ def get_output_key(buttons, layer, tap):
             result = None, mapped_buttons[0][0]
     
     #print(f'get output key: {buttons}, {layer}, {tap}, {result}')
-
     return result
 
 def time_ms():
@@ -91,14 +85,7 @@ def poll_keys(foo=None):
     global PINS
     global OS_SHIFT_PENDING
     global OS_CTRL_PENDING
-    global INJECT_FUNC
     global DELAYED_INPUT
-
-    if DELAYED_INPUT:
-        value = DELAYED_INPUT.pop()
-        time.sleep(0.2)
-        INJECT_FUNC(value)
-        return
 
     # clock = time.ticks_ms()
     clock = time_ms()
@@ -178,15 +165,7 @@ def poll_keys(foo=None):
                             'active': output_key is not None or new_layer is not None
                         }
 
-            # new_event = EVENT_T(buttons=list(PENDING_BUTTONS),
-            #                     start_time=clock,
-            #                     output_key=output_key,
-            #                     last_output_time=0,
-            #                     layer=new_layer,
-            #                     active=output_key is not None or new_layer is not None)
             printd('New event: {new_event}')
-            #for event in EVENTS:
-            #    event.active = False
             EVENTS.append(new_event)
             PENDING_BUTTONS.clear()
             TICKER = 0
@@ -195,13 +174,19 @@ def poll_keys(foo=None):
     if EVENTS and EVENTS[-1]['active']:
         last_event = EVENTS[-1]
         if last_event['output_key'] is not None:
-            INJECT_FUNC(last_event['output_key'])
             last_event['active'] = False
+            return(last_event['output_key'])
 
 
 if __name__ == '__main__':
-    # timer = start_timer()
-    # timer.start()
-    while True:
-        time.sleep(.01)
-        poll_keys()
+    with uinput.Device(UINPUT_ACTIVATE) as device:
+        while True:
+            time.sleep(.01)
+            keypress = poll_keys()
+            uinput_key = UINPUT_TRANSLATE[keypress]
+            if isinstance(list, uinput_key):
+                device.emit_combo(uinput_key)
+            else:
+                device.emit(uinput_key)
+
+                
