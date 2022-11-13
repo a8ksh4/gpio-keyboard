@@ -81,12 +81,25 @@ UINPUT_TRANSLATE = {
     '}': (uinput.KEY_RIGHTBRACE, uinput.KEY_LEFTSHIFT),
     '`': uinput.KEY_GRAVE,
     '~': (uinput.KEY_GRAVE, uinput.KEY_LEFTSHIFT),
+    '/': uinput.KEY_FORWARD,
+
+    '_entr': uinput.KEY_ENTER,
+    '_left': uinput.KEY_LEFT,
+    '_rght': uinput.KEY_RIGHT,
+    '_up': uinput.KEY_UP,
+    '_down': uinput.KEY_DOWN,
+    '_home': uinput.KEY_HOME,
+    '_end': uinput.KEY_END,
+    '_bksp': uinput.KEY_BACKSPACE,
+    '_tab': uinput.KEY_TAB,
+    '_ctrl': uinput.KEY_LEFTCTRL,
 
 }
 
-UINPUT_ACTIVATE = []
+UINPUT_ACTIVATE = set()
 for val in UINPUT_TRANSLATE.values():
-    if isinstance(tuple, val):
-        UINPUT_ACTIVATE.extend(val)
+    if isinstance(val[0], (list, tuple)):
+        UINPUT_ACTIVATE.update(val)
     else:
-        UINPUT_ACTIVATE.append(val)
+        UINPUT_ACTIVATE.add(val)
+UINPUT_ACTIVATE = list(UINPUT_ACTIVATE)

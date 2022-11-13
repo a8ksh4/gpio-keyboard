@@ -151,11 +151,12 @@ def poll_keys(foo=None):
             
             if output_key is not None and OS_CTRL_PENDING:
                 if output_key in CTRLED:
-                    output_key = CTRLED[output_key]
+                    #output_key = CTRLED[output_key]
+                    output_key = ('_ctrl', output_key)
                 OS_CTRL_PENDING = False
 
-            if output_key in CODES:
-                output_key = CODES[output_key]
+            #if output_key in CODES:
+            #    output_key = CODES[output_key]
 
             new_event = {'buttons': list(PENDING_BUTTONS),
                             'start_time': clock,
@@ -179,14 +180,22 @@ def poll_keys(foo=None):
 
 
 if __name__ == '__main__':
+
     with uinput.Device(UINPUT_ACTIVATE) as device:
         while True:
             time.sleep(.01)
             keypress = poll_keys()
-            uinput_key = UINPUT_TRANSLATE[keypress]
-            if isinstance(list, uinput_key):
+            if keypress is None:
+                continue
+            if isinstance(keypress, tuple):
+                uinput_key = (UINPUT_TRANSLATE[keypress[0]], 
+                                UINPUT_TRANSLATE[keypress[1]])
+            else:
+                uinput_key = UINPUT_TRANSLATE[keypress]
+            print(keypress, uinput_key)
+            if isinstance(uinput_key[0], (list, tuple)):
                 device.emit_combo(uinput_key)
             else:
-                device.emit(uinput_key)
+                device.emit_click(uinput_key)
 
                 
