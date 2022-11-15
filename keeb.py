@@ -4,8 +4,10 @@ from gpiozero import Button
 import threading as th
 import time
 from keymap import LAYERS, CHORDS, PINS
-from keys import SHIFTED, CTRLED, CODES
+from keys import SHIFTED #, CTRLED, CODES
+import os
 import collections
+import subprocess as sp
 import uinput
 from uinput_translate import UINPUT_ACTIVATE, UINPUT_TRANSLATE
 
@@ -165,26 +167,51 @@ def poll_keys(foo=None):
                             'layer': new_layer,
                             'active': output_key is not None or new_layer is not None
                         }
+            if output_key in ('_mup', '_mdwn', '_mlft', '_mrgt', '_mdul', '_mdur', '_mddl', '_mddr'):
+                new_event['active'] = False
 
             printd('New event: {new_event}')
             EVENTS.append(new_event)
             PENDING_BUTTONS.clear()
             TICKER = 0
+    
+    # Check Mouse Events
+    mouse_x, mouse_y = 0, 0
+    if [e for e in EVENTS if e['output_key'] in ('_mlft', '_mdul', '_mddl')]:
+        mouse_x -= 5
+    if [e for e in EVENTS if e['output_key'] in ('_mrgt', '_mdur', '_mddr')]:
+        mouse_x += 5
+    if [e for e in EVENTS if e['output_key'] in ('_mup', '_mdul', '_mdur')]:
+        mouse_y -= 5
+    if [e for e in EVENTS if e['output_key'] in ('_mdwn', '_mddl', '_mddr')]:
+        mouse_y += 5
 
     # Generate key press based on top active event.
+    output_key = None
     if EVENTS and EVENTS[-1]['active']:
         last_event = EVENTS[-1]
         if last_event['output_key'] is not None:
             last_event['active'] = False
-            return(last_event['output_key'])
+            output_key = last_event['output_key']
+            # return(last_event['output_key'])
+    return output_key, mouse_x, mouse_y
 
 
 if __name__ == '__main__':
 
+    # Make sure uinput is loaded
+    if not os.path.exists('/sys/modules/uinput'):
+        print('Loading uinput module...')
+        sp.call(['modprobe', 'uinput'])
+
     with uinput.Device(UINPUT_ACTIVATE) as device:
         while True:
             time.sleep(.01)
-            keypress = poll_keys()
+            keypress, mouse_x, mouse_y = poll_keys()
+            if mouse_x or mouse_y:
+                device.emit(uinput.REL_X, mouse_x, syn=False)
+                device.emit(uinput.REL_Y, mouse_y)
+                
             if keypress is None:
                 continue
             if isinstance(keypress, tuple):

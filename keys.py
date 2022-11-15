@@ -49,23 +49,21 @@ SHIFTED = {
 }
 
 # Reference: https://usermanual.wiki/buckets/88484/1582081673/XP8200_Command_Manual.pdf
-CODES = {
-    '_bksp': b'\b',
-    '_entr': b'\r',
-    '_tab': b'\t',
-    '_up': b'\x1b\x5b\x41',
-    '_down': b'\x1b\x5b\x42',
-    '_left': b'\x1b\x5b\x44',
-    '_rght': b'\x1b\x5b\x43',
-    '_home': b'\x1b\x5b\x48',
-    '_end': b'\x1b\x5b\x52',
-}
+# CODES = {
+#     '_bksp': b'\b',
+#     '_entr': b'\r',
+#     '_tab': b'\t',
+#     '_up': b'\x1b\x5b\x41',
+#     '_down': b'\x1b\x5b\x42',
+#     '_left': b'\x1b\x5b\x44',
+#     '_rght': b'\x1b\x5b\x43',
+#     '_home': b'\x1b\x5b\x48',
+#     '_end': b'\x1b\x5b\x52',
+# }
 
-CTRLED = {
-    'a': b'\x01',
-    'b': b'\x02',
-    'c': b'\x03',
-    'd': b'\x04',  
-    
-
-}
+# CTRLED = {
+#     'a': b'\x01',
+#     'b': b'\x02',
+#     'c': b'\x03',
+#     'd': b'\x04',  
+# }

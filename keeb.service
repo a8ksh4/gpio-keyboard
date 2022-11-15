@@ -1,0 +1,17 @@
+[Unit]
+Description=keeb
+DefaultDependencies=no
+
+[Service]
+Type=simple
+KillSignal=SIGINT
+TimeoutStopSec=8
+Restart=on-failure
+
+### Change the paths below to match yours
+WorkingDirectory=/home/dan/git/Pocket
+ExecStart=/home/dan/git/Pocket/keeb.py
+###
+
+[Install]
+WantedBy=sysinit.target

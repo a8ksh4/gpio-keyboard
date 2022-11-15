@@ -22,7 +22,11 @@ LAYERS = (
 
     # NAV
     ('_pgup', '_home', '_up',   '_end',  '',
-     '_pgdn', '_left', '_down', '_rght', '')
+     '_pgdn', '_left', '_down', '_rght', ''),
+
+    # MOUSE
+    ('_scup', '_mbt2', '_mup',  '_mbt1', '_mbt3',
+     '_scdn', '_mlft', '_mdwn', '_mrgt', '_mbt1')
 )
 
 CHORDS = {
@@ -60,6 +64,7 @@ CHORDS = {
     ('5', '6'):             '0',
     ('4', '2'):             '_bksp',
     ('4', '1'):             '_entr',
+    ('_rght', '_end'):      '_entr',
     #
     ('o', 'i', 'y', 'e'):   ' ',
     ('y', 'a'):             '.',
@@ -69,16 +74,25 @@ CHORDS = {
     ('t', 'i'):             '!',
     ('(', ')'):             ':',
     ('o', 't', 'r', 'a'):   '_tab',
+    ('_pgdn','_home', 
+        '_up', '_end',):    '_tab',
     ('a', 'e'):             '_entr',
     ('s', 'e'):             '_os_ctrl',
     ('s', 'i'):             '_alt',
     ('s', 't', 'r', 'e'):   '_os_shft',
     ('r', 'e'):             '_bksp',
     ('o', 'r', 'a'):        '_esc',
-    #
-    ('e', 'r', 'i'):        ('_set_base', 4),   
-    ('_left', '_up', '_rght'): ('_set_base', 0),
-    ('_up', '_rght'):       '_bksp'
+    # Nav Layer:
+    ('e', 'r', 'i'):            ('_set_base', 4),   
+    ('_left', '_up', '_rght'):  ('_set_base', 0),
+    # Mouse Layer:
+    ('a', 't', 'y'):            ('_set_base', 5),
+    ('_mbt1', '_mdwn', '_mbt2'): ('_set_base', 0),
+    ('_up', '_rght'):       '_bksp',
+    ('_mup', '_mrgt'):      '_mdur', # Mouse diagonal up right
+    ('_mup', '_mlft'):      '_mdul', # Mouse diagonal up left
+    ('_mdwn', '_mrgt'):     '_mddr', # Mouse diagonal down right
+    ('_mdwn', '_mlft'):     '_mddl', # Mouse diagonal down left
 }
 
 # Sort the keys for comparison later

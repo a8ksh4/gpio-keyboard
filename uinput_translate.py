@@ -94,12 +94,21 @@ UINPUT_TRANSLATE = {
     '_tab': uinput.KEY_TAB,
     '_ctrl': uinput.KEY_LEFTCTRL,
 
+    '_mbt1': uinput.BTN_LEFT,
+    '_mbt2': uinput.BTN_RIGHT,
+    '_mbt3': uinput.BTN_MIDDLE,
+    '_scup': uinput.KEY_SCROLLUP,
+    '_scdn': uinput.KEY_SCROLLDOWN
 }
 
+OTHERS = ( uinput.REL_X,
+           uinput.REL_Y )
 UINPUT_ACTIVATE = set()
 for val in UINPUT_TRANSLATE.values():
     if isinstance(val[0], (list, tuple)):
         UINPUT_ACTIVATE.update(val)
     else:
         UINPUT_ACTIVATE.add(val)
+UINPUT_ACTIVATE.update(OTHERS)
+
 UINPUT_ACTIVATE = list(UINPUT_ACTIVATE)
