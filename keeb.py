@@ -1,5 +1,7 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
+from gpiozero.pins.lgpio import LGPIOFactory
+from gpiozero.pins.rpigpio import RPiGPIOFactory
 from gpiozero import Button
 import threading as th
 import time
@@ -10,9 +12,10 @@ import collections
 import subprocess as sp
 import uinput
 from uinput_translate import UINPUT_ACTIVATE, UINPUT_TRANSLATE
+from signal import pause
 
 #PINS = [Pin(p, Pin.IN, Pin.PULL_UP) for p in PINS]
-PINS = [Button(p) for p in PINS]
+#PINS = [Button(p) for p in PINS]
 
 #HOLD_TIME = 500
 #LAYER_HOLDTIME = 300
@@ -28,6 +31,7 @@ OS_CTRL_PENDING = False
 TIMER = None
 DEBUG = False
 DELAYED_INPUT = [] # interface for other tools to ask for something to be typed.
+BUTTONS_PRESSED = []
 
 
 # Strategery
@@ -77,7 +81,7 @@ def time_ms():
     return int(time.time_ns() / 1000000)
 
 
-def poll_keys(foo=None):
+def event_handler(active_button):
     #print('FOO', foo)
     global TICKER  
     global HOLDTIME
@@ -88,6 +92,7 @@ def poll_keys(foo=None):
     global OS_SHIFT_PENDING
     global OS_CTRL_PENDING
     global DELAYED_INPUT
+    global BUTTONS_PRESSED
 
     # clock = time.ticks_ms()
     clock = time_ms()
@@ -95,21 +100,28 @@ def poll_keys(foo=None):
     current_layer = [BASE_LAYER,] + [e['layer'] for e in EVENTS if e['layer']]
     current_layer = current_layer[-1]
 
-    # buttons_pressed = [n for n, p  in enumerate(PINS) if not p.value()]
-    buttons_pressed = [n for n, p  in enumerate(PINS) if p.is_pressed]
-    if buttons_pressed:
-        #print('Pressed:', buttons_pressed)
-        pass
+    active_pin = [n for n, p in enumerate(PINS) if p == active_button.pin.number][0]
+    print(active_pin)
+    if active_button.is_pressed:
+        BUTTONS_PRESSED.append(active_pin)
+    else:
+        BUTTONS_PRESSED.remove(active_pin)
+
+    # # buttons_pressed = [n for n, p  in enumerate(PINS) if not p.value()]
+    # buttons_pressed = [n for n, p  in enumerate(PINS) if p.is_pressed]
+    # if buttons_pressed:
+    #     pass
+
     # Remove events whos buttons are no longer pressed.
     for event in EVENTS:
-        still_pressed = [b for b in event['buttons'] if b in buttons_pressed]
+        still_pressed = [b for b in event['buttons'] if b in BUTTONS_PRESSED]
         if not still_pressed:
             EVENTS.remove(event)
 
     # Remove buttons from buttons_pressed if associated with an event
     all_event_butons = sum([e['buttons'] for e in EVENTS], [])
     #print('all event buttons:', all_event_butons)
-    buttons_pressed = [b for b in buttons_pressed if b not in all_event_butons]
+    buttons_pressed = [b for b in BUTTONS_PRESSED if b not in all_event_butons]
     # TODO: mark events inactive if not all of their original buttons are still pressed.
 
     # Move buttons_pressed to pending
@@ -119,7 +131,7 @@ def poll_keys(foo=None):
     if PENDING_BUTTONS:
         if not TICKER:
             TICKER = clock
-        #print('Pending:', PENDING_BUTTONS)
+        print('Pending:', PENDING_BUTTONS)
 
         # Check conditions for new event - Keys starting to be released or hold_time exceeded
         # TODO: maybe separate hold times for layer stuff vs chords. 
@@ -128,10 +140,10 @@ def poll_keys(foo=None):
             tap =  clock - TICKER < HOLDTIME
 
             printd(f'{(len(PENDING_BUTTONS), len(buttons_pressed), clock, TICKER, clock-TICKER)}')
-            #print(PENDING_BUTTONS, current_layer, tap)
+            print(PENDING_BUTTONS, current_layer, tap)
             output_key, new_layer = get_output_key(PENDING_BUTTONS, current_layer, tap)
 
-            #print(output_key, new_layer)
+            print(output_key, new_layer)
             if output_key == '_set_base':
                 BASE_LAYER = new_layer
                 output_key, new_layer = None, None
@@ -194,7 +206,32 @@ def poll_keys(foo=None):
             last_event['active'] = False
             output_key = last_event['output_key']
             # return(last_event['output_key'])
-    return output_key, mouse_x, mouse_y
+    triggerUinput(output_key, mouse_x, mouse_y)
+
+
+def triggerUinput(keypress, mouse_x, mouse_y):
+    global UINPUT
+    global UINPUT_TRANSLATE
+
+    if mouse_x or mouse_y:
+        UINPUT.emit(uinput.REL_X, mouse_x, syn=False)
+        UINPUT.emit(uinput.REL_Y, mouse_y)
+        
+    if keypress is None:
+        return
+    
+    if isinstance(keypress, tuple):
+        uinput_key = (UINPUT_TRANSLATE[keypress[0]], 
+                        UINPUT_TRANSLATE[keypress[1]])
+    else:
+        uinput_key = UINPUT_TRANSLATE[keypress]
+
+    print(keypress, uinput_key)
+    if isinstance(uinput_key[0], (list, tuple)):
+        UINPUT.emit_combo(uinput_key)
+    else:
+        UINPUT.emit_click(uinput_key)
+
 
 
 if __name__ == '__main__':
@@ -204,25 +241,19 @@ if __name__ == '__main__':
         print('Loading uinput module...')
         sp.call(['modprobe', 'uinput'])
 
-    with uinput.Device(UINPUT_ACTIVATE) as device:
-        while True:
-            time.sleep(.01)
-            keypress, mouse_x, mouse_y = poll_keys()
-            if mouse_x or mouse_y:
-                device.emit(uinput.REL_X, mouse_x, syn=False)
-                device.emit(uinput.REL_Y, mouse_y)
-                
-            if keypress is None:
-                continue
-            if isinstance(keypress, tuple):
-                uinput_key = (UINPUT_TRANSLATE[keypress[0]], 
-                                UINPUT_TRANSLATE[keypress[1]])
-            else:
-                uinput_key = UINPUT_TRANSLATE[keypress]
-            print(keypress, uinput_key)
-            if isinstance(uinput_key[0], (list, tuple)):
-                device.emit_combo(uinput_key)
-            else:
-                device.emit_click(uinput_key)
+    factory = LGPIOFactory(chip=0)
+    # factory = RPiGPIOFactory()
+    BUTTONS = []
+    for pin in PINS:
+        button = Button(pin, bounce_time=0.1, pin_factory=factory)
+        button.when_pressed = event_handler
+        button.when_released = event_handler
+        BUTTONS.append(button)
+
+    with uinput.Device(UINPUT_ACTIVATE) as UINPUT:
+        print('Waiting for events!')
+        pause()
+
+
 
                 
