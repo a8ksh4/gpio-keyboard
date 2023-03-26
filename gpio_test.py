@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from gpiozero.pins.lgpio import LGPIOFactory
 from gpiozero import Button
 from time import sleep
 from signal import pause
@@ -11,7 +12,7 @@ button_pins = (21, 20, 16, 12, 25, 24, 23, 18, 15, 14, 7, 8, 13, 19, 26)
 # button_pins = (16, 21, ?, 25, 23, 
 #                20, 12, ?, ? , 24,
 #                14, 15, 18)
-
+factory = LGPIOFactory()
 buttons = []
 # buttons = [Button(b) for b in button_pins]
 for p in button_pins:
@@ -21,7 +22,7 @@ for p in button_pins:
 
     print("init button", p)
     try:
-        butt = Button(p, bounce_time = 0.1)
+        butt = Button(p, bounce_time = 0.1, pin_factory=factory)
         butt.when_pressed = lambda b: print('pressed', b.pin)
         #butt.when_released = lambda b: print('released', b.pin)
         buttons.append(butt)
@@ -29,6 +30,7 @@ for p in button_pins:
         print('error', p)
 print()
 
+#sleep(999)
 pause()
 
 # while True:
