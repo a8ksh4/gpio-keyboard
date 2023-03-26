@@ -1,18 +1,22 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
-from gpiozero import Button
-import threading as th
-import time
+#import collections
 from keymap import LAYERS, CHORDS, PINS
 from keys import SHIFTED #, CTRLED, CODES
+import lgpio as sbc
 import os
-import collections
 import subprocess as sp
+#import threading as th
+import time
 import uinput
 from uinput_translate import UINPUT_ACTIVATE, UINPUT_TRANSLATE
 
 #PINS = [Pin(p, Pin.IN, Pin.PULL_UP) for p in PINS]
-PINS = [Button(p) for p in PINS]
+#PINS = [Button(p) for p in PINS]
+CHIP = 0 # sholdn't need to change on raspberry pi
+
+FREQUENCY = 100 # Times per second to poll for changes
+SLEEP_TIME = 1 / FREQUENCY
 
 #HOLD_TIME = 500
 #LAYER_HOLDTIME = 300
@@ -77,7 +81,7 @@ def time_ms():
     return int(time.time_ns() / 1000000)
 
 
-def poll_keys(foo=None):
+def poll_keys(buttons_pressed):
     #print('FOO', foo)
     global TICKER  
     global HOLDTIME
@@ -95,11 +99,6 @@ def poll_keys(foo=None):
     current_layer = [BASE_LAYER,] + [e['layer'] for e in EVENTS if e['layer']]
     current_layer = current_layer[-1]
 
-    # buttons_pressed = [n for n, p  in enumerate(PINS) if not p.value()]
-    buttons_pressed = [n for n, p  in enumerate(PINS) if p.is_pressed]
-    if buttons_pressed:
-        #print('Pressed:', buttons_pressed)
-        pass
     # Remove events whos buttons are no longer pressed.
     for event in EVENTS:
         still_pressed = [b for b in event['buttons'] if b in buttons_pressed]
@@ -204,10 +203,23 @@ if __name__ == '__main__':
         print('Loading uinput module...')
         sp.call(['modprobe', 'uinput'])
 
+    handle = sbc.gpiochip_open(CHIP)
+    sbc.group_claim_input(handle, PINS, sbc.SET_BIAS_PULL_UP | sbc.SET_ACTIVE_LOW)
+    
+
     with uinput.Device(UINPUT_ACTIVATE) as device:
+        #foo, mask = sbc.group_read(handle, PINS[0])
+        mask = None
         while True:
-            time.sleep(.01)
-            keypress, mouse_x, mouse_y = poll_keys()
+            time.sleep(SLEEP_TIME)
+
+            foo, new_mask = sbc.group_read(handle, PINS[0])
+            if new_mask == mask and not EVENTS:
+                continue
+            #same = mask ^ new_mask
+            active = [n for n in range(32) if new_mask & 2**n]
+            keypress, mouse_x, mouse_y = poll_keys(active)
+
             if mouse_x or mouse_y:
                 device.emit(uinput.REL_X, mouse_x, syn=False)
                 device.emit(uinput.REL_Y, mouse_y)
