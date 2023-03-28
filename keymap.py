@@ -81,6 +81,9 @@ CHORDS = {
     ('s', 't', 'r', 'e'):   '_os_shft',
     ('r', 'e'):             '_bksp',
     ('o', 'r', 'a'):        '_esc',
+    ('a', 'r', 'e', 'y'):   '_f11',
+    ('r', 't', 'y', 'i'):   '_alta', #set('_alt', '_tab'),
+    ('t', 's', 'i', 'o'):   '_salta', #set('_shft', '_alt', '_tab'),
     # Nav Layer:
     ('e', 'r', 'i'):            ('_set_base', 4),   
     ('_left', '_up', '_rght'):  ('_set_base', 0),

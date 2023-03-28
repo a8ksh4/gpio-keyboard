@@ -7,11 +7,15 @@ Type=simple
 KillSignal=SIGINT
 TimeoutStopSec=8
 Restart=on-failure
+# StandardOutput=syslog
+# StandardError=syslog
+SyslogIdentifier=keeb
 
 ### Change the paths below to match yours
-WorkingDirectory=/home/dan/git/Pocket
-ExecStart=/home/dan/git/Pocket/keeb.py
+WorkingDirectory=/home/dan/git/gpio-keyboard
+ExecStart=/home/dan/git/gpio-keyboard/keeb.py
 ###
 
 [Install]
 WantedBy=sysinit.target
+

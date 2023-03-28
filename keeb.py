@@ -98,9 +98,11 @@ def poll_keys(buttons_pressed):
     current_layer = current_layer[-1]
 
     # Remove events whos buttons are no longer pressed.
+    # unpress = []
     for event in EVENTS:
         still_pressed = [b for b in event['buttons'] if b in buttons_pressed]
         if not still_pressed:
+            # unpress.append(event['']
             EVENTS.remove(event)
 
     # Remove buttons from buttons_pressed if associated with an event
@@ -149,9 +151,9 @@ def poll_keys(buttons_pressed):
                 OS_SHIFT_PENDING = False
             
             if output_key is not None and OS_CTRL_PENDING:
-                if output_key in CTRLED:
+                #if output_key in CTRLED:
                     #output_key = CTRLED[output_key]
-                    output_key = ('_ctrl', output_key)
+                output_key = ('_ctrl', output_key)
                 OS_CTRL_PENDING = False
 
             #if output_key in CODES:
@@ -191,7 +193,7 @@ def poll_keys(buttons_pressed):
             last_event['active'] = False
             output_key = last_event['output_key']
             # return(last_event['output_key'])
-    return output_key, mouse_x, mouse_y
+    return output_key, unpress, mouse_x, mouse_y
 
 
 if __name__ == '__main__':
@@ -217,7 +219,7 @@ if __name__ == '__main__':
                 continue
             #same = mask ^ new_mask
             active = [n for n in range(32) if new_mask & 2**n]
-            keypress, mouse_x, mouse_y = poll_keys(active)
+            keypress, keyunpress, mouse_x, mouse_y = poll_keys(active)
 
             if mouse_x or mouse_y:
                 device.emit(uinput.REL_X, mouse_x, syn=False)
@@ -230,20 +232,28 @@ if __name__ == '__main__':
                                 UINPUT_TRANSLATE[keypress[1]]]
             else:
                 uinput_key = UINPUT_TRANSLATE[keypress]
+
             print(keypress, uinput_key)
             if isinstance(uinput_key[0], (list, tuple)):
-                first = uinput_key[0]
-                second = uinput_key[1]
-                print('combo', first, second)
+                emit_these = uinput_key[:-1]
+                click_this = uinput_key[-1]
+                # first = uinput_key[0]
+                # second = uinput_key[1]
 
-                device.emit(first, 1, syn=True)
-                time.sleep(0.05)
-                device.emit_click(second, syn=True)
-                time.sleep(0.05)
-                device.emit(first, 0, syn=True)
+                for et in emit_these:
+                    device.emit(et, 1, syn=True)
+                    time.sleep(0.05)
+                    
+                # device.emit(first, 1, syn=True)
+                # time.sleep(0.05)
+                device.emit_click(click_this, syn=True)
+                # time.sleep(0.05)
+                # device.emit(first, 0, syn=True)
+                for et in emit_these:
+                    device.emit(et, 0, syn=True)
+                    time.sleep(0.05)
  
             else:
-                print('not combo', uinput_key)
                 device.emit_click(uinput_key)
 
             # emit a python ctrl c combo with python uinput
