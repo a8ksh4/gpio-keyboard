@@ -1,4 +1,4 @@
-# Pocket
+# Gpio Keyboard
 This is a chording keyboard firmware made with gpiozero and the uinput module.  Gpiozero is compatible with the raspberry pis on the most recent version of raspberry pi os at the time of tihs writing.  
 
 It support lots of features:
