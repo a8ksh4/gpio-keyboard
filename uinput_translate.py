@@ -93,6 +93,7 @@ UINPUT_TRANSLATE = {
     '_bksp': uinput.KEY_BACKSPACE,
     '_tab': uinput.KEY_TAB,
     '_ctrl': uinput.KEY_LEFTCTRL,
+    '_rctrl': uinput.KEY_RIGHTCTRL,
 
     '_mbt1': uinput.BTN_LEFT,
     '_mbt2': uinput.BTN_RIGHT,
@@ -111,4 +112,4 @@ for val in UINPUT_TRANSLATE.values():
         UINPUT_ACTIVATE.add(val)
 UINPUT_ACTIVATE.update(OTHERS)
 
-UINPUT_ACTIVATE = list(UINPUT_ACTIVATE)
+UINPUT_ACTIVATE = list(sorted(UINPUT_ACTIVATE))

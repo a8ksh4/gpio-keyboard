@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
 #import collections
-from keymap import LAYERS, CHORDS, PINS
-from keys import SHIFTED #, CTRLED, CODES
+from keymap import LAYERS, CHORDS, PINS, ENCODER
+from keys import SHIFTED, CTRLED #, CODES
 import lgpio as sbc
 import os
 import subprocess as sp
@@ -11,8 +11,6 @@ import time
 import uinput
 from uinput_translate import UINPUT_ACTIVATE, UINPUT_TRANSLATE
 
-#PINS = [Pin(p, Pin.IN, Pin.PULL_UP) for p in PINS]
-#PINS = [Button(p) for p in PINS]
 CHIP = 0 # sholdn't need to change on raspberry pi
 
 FREQUENCY = 100 # Times per second to poll for changes
@@ -207,6 +205,7 @@ if __name__ == '__main__':
     sbc.group_claim_input(handle, PINS, sbc.SET_BIAS_PULL_UP | sbc.SET_ACTIVE_LOW)
     
 
+    print(UINPUT_ACTIVATE)
     with uinput.Device(UINPUT_ACTIVATE) as device:
         #foo, mask = sbc.group_read(handle, PINS[0])
         mask = None
@@ -227,14 +226,27 @@ if __name__ == '__main__':
             if keypress is None:
                 continue
             if isinstance(keypress, tuple):
-                uinput_key = (UINPUT_TRANSLATE[keypress[0]], 
-                                UINPUT_TRANSLATE[keypress[1]])
+                uinput_key = [UINPUT_TRANSLATE[keypress[0]], 
+                                UINPUT_TRANSLATE[keypress[1]]]
             else:
                 uinput_key = UINPUT_TRANSLATE[keypress]
             print(keypress, uinput_key)
             if isinstance(uinput_key[0], (list, tuple)):
-                device.emit_combo(uinput_key)
+                first = uinput_key[0]
+                second = uinput_key[1]
+                print('combo', first, second)
+
+                device.emit(first, 1, syn=True)
+                time.sleep(0.05)
+                device.emit_click(second, syn=True)
+                time.sleep(0.05)
+                device.emit(first, 0, syn=True)
+ 
             else:
+                print('not combo', uinput_key)
                 device.emit_click(uinput_key)
+
+            # emit a python ctrl c combo with python uinput
+            #device.emit_combo([uinput.KEY_LEFTCTRL, uinput.KEY_C])
 
                 
