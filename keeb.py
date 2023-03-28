@@ -193,7 +193,7 @@ def poll_keys(buttons_pressed):
             last_event['active'] = False
             output_key = last_event['output_key']
             # return(last_event['output_key'])
-    return output_key, unpress, mouse_x, mouse_y
+    return output_key, mouse_x, mouse_y
 
 
 if __name__ == '__main__':
@@ -219,7 +219,7 @@ if __name__ == '__main__':
                 continue
             #same = mask ^ new_mask
             active = [n for n in range(32) if new_mask & 2**n]
-            keypress, keyunpress, mouse_x, mouse_y = poll_keys(active)
+            keypress, mouse_x, mouse_y = poll_keys(active)
 
             if mouse_x or mouse_y:
                 device.emit(uinput.REL_X, mouse_x, syn=False)

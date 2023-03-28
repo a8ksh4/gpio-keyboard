@@ -7,9 +7,10 @@ Type=simple
 KillSignal=SIGINT
 TimeoutStopSec=8
 Restart=on-failure
-# StandardOutput=syslog
-# StandardError=syslog
+StandardOutput=file:/home/dan/git/gpio-keyboard/keeb.log
+StandardError=file:/home/dan/git/gpio-keyboard/keeb.log
 SyslogIdentifier=keeb
+
 
 ### Change the paths below to match yours
 WorkingDirectory=/home/dan/git/gpio-keyboard
