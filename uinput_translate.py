@@ -93,6 +93,8 @@ UINPUT_TRANSLATE = {
     '_' : (uinput.KEY_LEFTSHIFT, uinput.KEY_MINUS),
     '=' : uinput.KEY_EQUAL,
     '+' : (uinput.KEY_LEFTSHIFT, uinput.KEY_EQUAL),
+    '?' : (uinput.KEY_LEFTSHIFT, uinput.KEY_SLASH),
+    
 
     '_entr': uinput.KEY_ENTER,
     '_left': uinput.KEY_LEFT,
