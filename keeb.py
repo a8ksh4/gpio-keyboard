@@ -13,7 +13,7 @@ from uinput_translate import UINPUT_ACTIVATE, UINPUT_TRANSLATE
 
 CHIP = 0 # sholdn't need to change on raspberry pi
 
-FREQUENCY = 100 # Times per second to poll for changes
+FREQUENCY = 200 # Times per second to poll for changes
 SLEEP_TIME = 1 / FREQUENCY
 
 #HOLD_TIME = 500
@@ -28,6 +28,8 @@ PENDING_BUTTONS = set()
 OS_SHIFT_PENDING = False
 OS_CTRL_PENDING = False
 OS_ALT_PENDING = False
+ENCODER_ADDRS = [n for n, p in enumerate(PINS) if p in ENCODER]
+ENCODER_LAST = 0
 TIMER = None
 DEBUG = False
 DELAYED_INPUT = [] # interface for other tools to ask for something to be typed.
@@ -88,6 +90,8 @@ def poll_keys(buttons_pressed, device):
     global EVENTS
     global PENDING_BUTTONS
     global PINS
+    global ENCODER_ADDRS
+    global ENCODER_LAST
     global OS_SHIFT_PENDING
     global OS_CTRL_PENDING
     global OS_ALT_PENDING
@@ -98,6 +102,49 @@ def poll_keys(buttons_pressed, device):
 
     current_layer = [BASE_LAYER,] + [e['layer'] for e in EVENTS if e['layer']]
     current_layer = current_layer[-1]
+
+    # Check encoder buttons and mute ther trailing pin
+    active_eaddrs = [e for e in ENCODER_ADDRS if e in buttons_pressed]
+    print('active_eaddrs:', active_eaddrs)
+    if len(active_eaddrs) == 0:
+        ENCODER_LAST = 0
+    elif len(active_eaddrs) == 2:
+        for eaddr in active_eaddrs:
+            buttons_pressed.remove(eaddr)
+    else:
+        eaddr = active_eaddrs[0]
+        print('eaddr:', eaddr)
+        if ENCODER_LAST == 0:
+            ENCODER_LAST = eaddr
+        else:
+            ENCODER_LAST = eaddr
+            buttons_pressed.remove(eaddr)
+
+    # for eaddr in ENCODER_ADDRS:
+    #     if eaddr not in buttons_pressed:
+    #         continue
+
+    #     if ENCODER_LAST == 0:
+    #         ENCODER_LAST = eaddr
+    #     else:
+    #         buttons_pressed.remove(eaddr)
+    #         ENCODER_LAST = eaddr
+    #     break
+
+    # else:
+    #     ENCODER_LAST = 0
+
+    # for eaddr in ENCODER_ADDRS:
+    #     if eaddr in buttons_pressed:
+    #         if not ENCODER_TOGGLE and clock - ENCODER_TIME > 0.05:
+    #             ENCODER_TOGGLE = not ENCODER_TOGGLE
+    #             ENCODER_TIME = clock
+    #         elif not ENCODER_TOGGLE:
+    #             pass
+    #         else:
+    #             ENCODER_TOGGLE = not ENCODER_TOGGLE
+    #             buttons_pressed.remove(eaddr)
+
 
     # Remove events whos buttons are no longer pressed.
     for event in EVENTS:
@@ -255,41 +302,6 @@ def poll_keys(buttons_pressed, device):
         device.emit(uinput.REL_Y, mouse_y)
 
 
-    # if keypress is None:
-    #     continue
-    # if isinstance(keypress, tuple):
-    #     uinput_key = [UINPUT_TRANSLATE[keypress[0]], 
-    #                     UINPUT_TRANSLATE[keypress[1]]]
-    # else:
-    #     uinput_key = UINPUT_TRANSLATE[keypress]
-
-    # print(keypress, uinput_key)
-    # if isinstance(uinput_key[0], (list, tuple)):
-    #     emit_these = uinput_key[:-1]
-    #     click_this = uinput_key[-1]
-    #     # first = uinput_key[0]
-    #     # second = uinput_key[1]
-
-    #     for et in emit_these:
-    #         device.emit(et, 1, syn=True)
-    #         time.sleep(0.05)
-            
-    #     # device.emit(first, 1, syn=True)
-    #     # time.sleep(0.05)
-    #     device.emit_click(click_this, syn=True)
-    #     # time.sleep(0.05)
-    #     # device.emit(first, 0, syn=True)
-    #     for et in emit_these:
-    #         device.emit(et, 0, syn=True)
-    #         time.sleep(0.05)
-
-    # else:
-    #     device.emit_click(uinput_key)
-
-    # emit a python ctrl c combo with python uinput
-    #device.emit_combo([uinput.KEY_LEFTCTRL, uinput.KEY_C])
-
-
 
 
 if __name__ == '__main__':
@@ -307,13 +319,19 @@ if __name__ == '__main__':
     with uinput.Device(UINPUT_ACTIVATE) as device:
         #foo, mask = sbc.group_read(handle, PINS[0])
         mask = None
+        extra_loop_toggle = False
         while True:
             time.sleep(SLEEP_TIME)
 
             foo, new_mask = sbc.group_read(handle, PINS[0])
             if new_mask == mask and not EVENTS:
+                # if extra_loop_toggle:
+                #     extra_loop_toggle = False
+                # else:
                 continue
             #same = mask ^ new_mask
+            extra_loop_toggle = True
+            mask = new_mask
             active = [n for n in range(32) if new_mask & 2**n]
             # keypress, mouse_x, mouse_y = poll_keys(active)
             poll_keys(active, device)
