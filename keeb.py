@@ -205,17 +205,49 @@ def poll_keys(buttons_pressed, device):
     
     # Delete done events
     EVENTS = [e for e in EVENTS if e['status'] != 'delete']
+
+    # Check for ctrl alt shift state
+    alt_pressed = [e for e in EVENTS if '_alt' in e['output_keys'] and e['status'] == 'active']
+    shift_pressed = [e for e in EVENTS if '_shift' in e['output_keys'] and e['status'] == 'active']
+    ctrl_pressed = [e for e in EVENTS if '_ctrl' in e['output_keys'] and e['status'] == 'active']
         
     # Generate key press based on top active event.
     if EVENTS and EVENTS[-1]['status'] == 'new':
         last_event = EVENTS[-1]
         last_event['status'] = 'active'
-        uinput_codes = [UINPUT_TRANSLATE[k] for k in last_event['output_keys'] if k is not None]
-        last_event['uinput_codes'] = uinput_codes
+        effective_keys = [k for k in last_event['output_keys'] if
+                            not (k == '_alt' and alt_pressed) and
+                            not (k == '_shift' and shift_pressed) and
+                            not (k == '_ctrl' and ctrl_pressed)]
+
+        uinput_codes = [UINPUT_TRANSLATE[k] for k in effective_keys if k is not None]
+        # uinput_codes = [c if isinstance(c[0], tuple) else (c,) for c in uinput_codes]
+        # uinput_codes = [c for l in uinput_codes for c in l]
+
+        unpress_later = []
         for uinput_code in uinput_codes:
-            print('pressing', uinput_code)
-            device.emit(uinput_code, 1, syn=True)
+            if isinstance(uinput_code[0], tuple):
+                temp_codes = uinput_code[:-1]
+                keep = uinput_code[-1]
+            else: 
+                temp_codes = []
+                keep = uinput_code
+            unpress_later.append(keep)
+                
+            for temp_code in temp_codes:
+                print('temp press', temp_code)
+                device.emit(temp_code, 1, syn=True)
+                time.sleep(0.01)
+
+            print('pressing', keep)
+            device.emit(keep, 1, syn=True)
             time.sleep(0.01)
+            for temp_code in temp_codes:
+                print('temp unpress', temp_code)
+                device.emit(temp_code, 0, syn=True)
+                time.sleep(0.01)
+        last_event['uinput_codes'] = unpress_later
+
             
     # Generate mouse movement
     if mouse_x or mouse_y:
