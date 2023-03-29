@@ -20,8 +20,8 @@ LAYERS = (
      '=', '-', '?',  '',  '', ''),
 
     # NAV
-    ('_pgup', '_home', '_up',   '_end',  '',
-     '_pgdn', '_left', '_down', '_rght', '', ''),
+    ('_pgup', '_home', '_up',   '_end',  '_mwup',
+     '_pgdn', '_left', '_down', '_rght', '_mwdn', ''),
 
     # MOUSE
     ('_scup', '_mbt2', '_mup',  '_mbt1', '_mbt3',

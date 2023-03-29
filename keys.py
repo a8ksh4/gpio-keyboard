@@ -48,6 +48,10 @@ SHIFTED = {
     "'": '"',
 }
 
+MOUSE_CODES = ('_mup', '_mdwn', '_mlft', '_mrgt', 
+                    '_mdul', '_mdur',  '_mddl', '_mddr',
+                    '_mwup', '_mwdn')
+
 # Reference: https://usermanual.wiki/buckets/88484/1582081673/XP8200_Command_Manual.pdf
 # CODES = {
 #     '_bksp': b'\b',

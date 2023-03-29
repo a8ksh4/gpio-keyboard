@@ -2,7 +2,7 @@
 
 #import collections
 from keymap import LAYERS, CHORDS, PINS, ENCODER
-from keys import SHIFTED, CTRLED #, CODES
+from keys import SHIFTED, CTRLED, MOUSE_CODES #, CODES
 import lgpio as sbc
 import os
 import subprocess as sp
@@ -92,6 +92,7 @@ def poll_keys(buttons_pressed, device):
     global OS_CTRL_PENDING
     global OS_ALT_PENDING
     global DELAYED_INPUT
+    global MOUSE_CODES
 
     # clock = time.ticks_ms()
     clock = time_ms()
@@ -170,11 +171,14 @@ def poll_keys(buttons_pressed, device):
             new_event = {'buttons': list(PENDING_BUTTONS),
                             'output_keys': output_key,
                             'layer': new_layer,
-                            'status': 'new'
+                            'status': 'new',
+                            'uinput_codes': []
                         }
             
-            if output_key in ('_mup', '_mdwn', '_mlft', '_mrgt', '_mdul', '_mdur', '_mddl', '_mddr'):
-                new_event['status'] = 'mouse'
+            for ok in output_key:
+                if ok in MOUSE_CODES:
+                    new_event['status'] = 'mouse'
+                    break
 
             print(f'New event: {new_event}')
             EVENTS.append(new_event)
@@ -182,7 +186,7 @@ def poll_keys(buttons_pressed, device):
             TICKER = 0
     
     # Check Mouse Events
-    mouse_x, mouse_y = 0, 0
+    mouse_x, mouse_y, mouse_wheel= 0, 0, 0
     if [e for e in EVENTS if e['output_keys'] in ('_mlft', '_mdul', '_mddl')]:
         mouse_x -= 5
     if [e for e in EVENTS if e['output_keys'] in ('_mrgt', '_mdur', '_mddr')]:
@@ -192,10 +196,27 @@ def poll_keys(buttons_pressed, device):
     if [e for e in EVENTS if e['output_keys'] in ('_mdwn', '_mddl', '_mddr')]:
         mouse_y += 5
 
+    # Check Mouse Wheel Events:
+    mouse_wheel = 0
+    for event in EVENTS:
+        if event['status'] != 'mouse':
+            continue
+        
+        event['status'] = 'mouse_done'
+        #if event['output_keys'] == '_mwup':
+        if '_mwup' in event['output_keys']:
+            print('mouse wheel up')
+            mouse_wheel = 1
+        #elif event['output_keys'] == '_mwdn':
+        elif '_mwdn' in event['output_keys']:
+            print('mouse wheel down')
+            mouse_wheel = -1
+
     # Unpress ended events
     for event in EVENTS:
         if event['status'] != 'released':
             continue
+
         for uinput_code in event['uinput_codes'][::-1]:
             print('unpressing', uinput_code)
             device.emit(uinput_code, 0, syn=True)
@@ -220,7 +241,9 @@ def poll_keys(buttons_pressed, device):
                             not (k == '_shift' and shift_pressed) and
                             not (k == '_ctrl' and ctrl_pressed)]
 
-        uinput_codes = [UINPUT_TRANSLATE[k] for k in effective_keys if k is not None]
+        uinput_codes = [UINPUT_TRANSLATE[k] for k in effective_keys 
+                            if k is not None
+                            and k not in MOUSE_CODES]
         # uinput_codes = [c if isinstance(c[0], tuple) else (c,) for c in uinput_codes]
         # uinput_codes = [c for l in uinput_codes for c in l]
 
@@ -252,8 +275,10 @@ def poll_keys(buttons_pressed, device):
     # Generate mouse movement
     if mouse_x or mouse_y:
         device.emit(uinput.REL_X, mouse_x, syn=False)
-        device.emit(uinput.REL_Y, mouse_y)
-
+        device.emit(uinput.REL_Y, mouse_y, syn=True)
+    if mouse_wheel != 0:
+        print('mouse wheel', mouse_wheel)
+        device.emit(uinput.REL_WHEEL, mouse_wheel, syn=True)
 
     # if keypress is None:
     #     continue

@@ -107,12 +107,26 @@ UINPUT_TRANSLATE = {
     '_tab': uinput.KEY_TAB,
     '_ctrl': uinput.KEY_LEFTCTRL,
     '_rctrl': uinput.KEY_RIGHTCTRL,
+    '_pgup': uinput.KEY_PAGEUP,
+    '_pgdn': uinput.KEY_PAGEDOWN,
+    '_esc': uinput.KEY_ESC,
+    '_del': uinput.KEY_DELETE,
+    '_ins': uinput.KEY_INSERT,
+    '_caps': uinput.KEY_CAPSLOCK,
+    '_prtsc': uinput.KEY_SYSRQ,
+    '_copy': uinput.KEY_COPY,
+    '_paste': uinput.KEY_PASTE,
+    '_cut': uinput.KEY_CUT,
+    '_undo': uinput.KEY_UNDO,
+    '_redo': uinput.KEY_REDO,
+    '_find': uinput.KEY_FIND,
 
     '_mbt1': uinput.BTN_LEFT,
     '_mbt2': uinput.BTN_RIGHT,
     '_mbt3': uinput.BTN_MIDDLE,
     '_scup': uinput.KEY_SCROLLUP,
     '_scdn': uinput.KEY_SCROLLDOWN,
+
     
     '_f1': uinput.KEY_F1,
     '_f2': uinput.KEY_F2,
@@ -132,7 +146,8 @@ UINPUT_TRANSLATE = {
 }
 
 OTHERS = ( uinput.REL_X,
-           uinput.REL_Y )
+           uinput.REL_Y,
+           uinput.REL_WHEEL,)
 UINPUT_ACTIVATE = set()
 for val in UINPUT_TRANSLATE.values():
     if isinstance(val[0], (list, tuple)):
