@@ -27,6 +27,7 @@ EVENTS = []
 PENDING_BUTTONS = set()
 OS_SHIFT_PENDING = False
 OS_CTRL_PENDING = False
+OS_ALT_PENDING = False
 TIMER = None
 DEBUG = False
 DELAYED_INPUT = [] # interface for other tools to ask for something to be typed.
@@ -79,7 +80,7 @@ def time_ms():
     return int(time.time_ns() / 1000000)
 
 
-def poll_keys(buttons_pressed):
+def poll_keys(buttons_pressed, device):
     #print('FOO', foo)
     global TICKER  
     global HOLDTIME
@@ -89,6 +90,7 @@ def poll_keys(buttons_pressed):
     global PINS
     global OS_SHIFT_PENDING
     global OS_CTRL_PENDING
+    global OS_ALT_PENDING
     global DELAYED_INPUT
 
     # clock = time.ticks_ms()
@@ -98,37 +100,37 @@ def poll_keys(buttons_pressed):
     current_layer = current_layer[-1]
 
     # Remove events whos buttons are no longer pressed.
-    # unpress = []
     for event in EVENTS:
         still_pressed = [b for b in event['buttons'] if b in buttons_pressed]
         if not still_pressed:
-            # unpress.append(event['']
-            EVENTS.remove(event)
+            event['status'] = 'released'
 
     # Remove buttons from buttons_pressed if associated with an event
     all_event_butons = sum([e['buttons'] for e in EVENTS], [])
     #print('all event buttons:', all_event_butons)
     buttons_pressed = [b for b in buttons_pressed if b not in all_event_butons]
-    # TODO: mark events inactive if not all of their original buttons are still pressed.
 
-    # Move buttons_pressed to pending
+    # Move buttons_pressed to pending - pending buttons is buttons 
+    # that have been pressed but are not associated with an event.
     PENDING_BUTTONS.update(buttons_pressed)
-    # At this point, pending buttons is only buttons pressed that have not been associated with an event. 
 
     if PENDING_BUTTONS:
         if not TICKER:
             TICKER = clock
         #print('Pending:', PENDING_BUTTONS)
 
-        # Check conditions for new event - Keys starting to be released or hold_time exceeded
         # TODO: maybe separate hold times for layer stuff vs chords. 
-        if ( len(PENDING_BUTTONS) > len(buttons_pressed) 
-                or clock - TICKER > HOLDTIME ):
+        
+        # DO WE MEET THE CONDITIONS TO START A NEW EVENT?
+        if ( len(PENDING_BUTTONS) > len(buttons_pressed)  # one or more keys released
+                or clock - TICKER > HOLDTIME ):           # hold time exceeded
+            
             tap =  clock - TICKER < HOLDTIME
 
             printd(f'{(len(PENDING_BUTTONS), len(buttons_pressed), clock, TICKER, clock-TICKER)}')
             #print(PENDING_BUTTONS, current_layer, tap)
             output_key, new_layer = get_output_key(PENDING_BUTTONS, current_layer, tap)
+            print(f'output_key: {output_key}, new_layer: {new_layer}')
 
             #print(output_key, new_layer)
             if output_key == '_set_base':
@@ -142,58 +144,120 @@ def poll_keys(buttons_pressed):
             if output_key == '_os_ctrl':
                 OS_CTRL_PENDING = True
                 output_key = None
+                
+            if output_key == '_os_alt':
+                OS_ALT_PENDING = True
+                output_key = None
             
             if output_key is not None and OS_SHIFT_PENDING:
-                #if not output_key.startswith('_') and len(output_key) > 1:
                 if output_key in SHIFTED:
-                # if len(output_key) == 1:
                     output_key = SHIFTED[output_key]
                 OS_SHIFT_PENDING = False
             
             if output_key is not None and OS_CTRL_PENDING:
-                #if output_key in CTRLED:
-                    #output_key = CTRLED[output_key]
                 output_key = ('_ctrl', output_key)
                 OS_CTRL_PENDING = False
-
-            #if output_key in CODES:
-            #    output_key = CODES[output_key]
-
+                
+            if output_key is not None and OS_ALT_PENDING:
+                output_key = ('_alt', output_key)
+                OS_ALT_PENDING = False
+            
+            # align on tuple output_key
+            if not isinstance(output_key, tuple):
+                output_key = (output_key,)
+                
+            
             new_event = {'buttons': list(PENDING_BUTTONS),
-                            'start_time': clock,
-                            'output_key': output_key,
-                            'last_output_time': 0,
+                            'output_keys': output_key,
                             'layer': new_layer,
-                            'active': output_key is not None or new_layer is not None
+                            'status': 'new'
                         }
+            
             if output_key in ('_mup', '_mdwn', '_mlft', '_mrgt', '_mdul', '_mdur', '_mddl', '_mddr'):
-                new_event['active'] = False
+                new_event['status'] = 'mouse'
 
-            printd('New event: {new_event}')
+            print(f'New event: {new_event}')
             EVENTS.append(new_event)
             PENDING_BUTTONS.clear()
             TICKER = 0
     
     # Check Mouse Events
     mouse_x, mouse_y = 0, 0
-    if [e for e in EVENTS if e['output_key'] in ('_mlft', '_mdul', '_mddl')]:
+    if [e for e in EVENTS if e['output_keys'] in ('_mlft', '_mdul', '_mddl')]:
         mouse_x -= 5
-    if [e for e in EVENTS if e['output_key'] in ('_mrgt', '_mdur', '_mddr')]:
+    if [e for e in EVENTS if e['output_keys'] in ('_mrgt', '_mdur', '_mddr')]:
         mouse_x += 5
-    if [e for e in EVENTS if e['output_key'] in ('_mup', '_mdul', '_mdur')]:
+    if [e for e in EVENTS if e['output_keys'] in ('_mup', '_mdul', '_mdur')]:
         mouse_y -= 5
-    if [e for e in EVENTS if e['output_key'] in ('_mdwn', '_mddl', '_mddr')]:
+    if [e for e in EVENTS if e['output_keys'] in ('_mdwn', '_mddl', '_mddr')]:
         mouse_y += 5
 
+    # Unpress ended events
+    for event in EVENTS:
+        if event['status'] != 'released':
+            continue
+        for uinput_code in event['uinput_codes'][::-1]:
+            print('unpressing', uinput_code)
+            device.emit(uinput_code, 0, syn=True)
+            time.sleep(0.01)
+        event['status'] = 'delete'
+        print(event)
+    
+    # Delete done events
+    EVENTS = [e for e in EVENTS if e['status'] != 'delete']
+        
     # Generate key press based on top active event.
-    output_key = None
-    if EVENTS and EVENTS[-1]['active']:
+    if EVENTS and EVENTS[-1]['status'] == 'new':
         last_event = EVENTS[-1]
-        if last_event['output_key'] is not None:
-            last_event['active'] = False
-            output_key = last_event['output_key']
-            # return(last_event['output_key'])
-    return output_key, mouse_x, mouse_y
+        last_event['status'] = 'active'
+        uinput_codes = [UINPUT_TRANSLATE[k] for k in last_event['output_keys'] if k is not None]
+        last_event['uinput_codes'] = uinput_codes
+        for uinput_code in uinput_codes:
+            print('pressing', uinput_code)
+            device.emit(uinput_code, 1, syn=True)
+            time.sleep(0.01)
+            
+    # Generate mouse movement
+    if mouse_x or mouse_y:
+        device.emit(uinput.REL_X, mouse_x, syn=False)
+        device.emit(uinput.REL_Y, mouse_y)
+
+
+    # if keypress is None:
+    #     continue
+    # if isinstance(keypress, tuple):
+    #     uinput_key = [UINPUT_TRANSLATE[keypress[0]], 
+    #                     UINPUT_TRANSLATE[keypress[1]]]
+    # else:
+    #     uinput_key = UINPUT_TRANSLATE[keypress]
+
+    # print(keypress, uinput_key)
+    # if isinstance(uinput_key[0], (list, tuple)):
+    #     emit_these = uinput_key[:-1]
+    #     click_this = uinput_key[-1]
+    #     # first = uinput_key[0]
+    #     # second = uinput_key[1]
+
+    #     for et in emit_these:
+    #         device.emit(et, 1, syn=True)
+    #         time.sleep(0.05)
+            
+    #     # device.emit(first, 1, syn=True)
+    #     # time.sleep(0.05)
+    #     device.emit_click(click_this, syn=True)
+    #     # time.sleep(0.05)
+    #     # device.emit(first, 0, syn=True)
+    #     for et in emit_these:
+    #         device.emit(et, 0, syn=True)
+    #         time.sleep(0.05)
+
+    # else:
+    #     device.emit_click(uinput_key)
+
+    # emit a python ctrl c combo with python uinput
+    #device.emit_combo([uinput.KEY_LEFTCTRL, uinput.KEY_C])
+
+
 
 
 if __name__ == '__main__':
@@ -219,44 +283,10 @@ if __name__ == '__main__':
                 continue
             #same = mask ^ new_mask
             active = [n for n in range(32) if new_mask & 2**n]
-            keypress, mouse_x, mouse_y = poll_keys(active)
+            # keypress, mouse_x, mouse_y = poll_keys(active)
+            poll_keys(active, device)
 
-            if mouse_x or mouse_y:
-                device.emit(uinput.REL_X, mouse_x, syn=False)
-                device.emit(uinput.REL_Y, mouse_y)
                 
-            if keypress is None:
-                continue
-            if isinstance(keypress, tuple):
-                uinput_key = [UINPUT_TRANSLATE[keypress[0]], 
-                                UINPUT_TRANSLATE[keypress[1]]]
-            else:
-                uinput_key = UINPUT_TRANSLATE[keypress]
 
-            print(keypress, uinput_key)
-            if isinstance(uinput_key[0], (list, tuple)):
-                emit_these = uinput_key[:-1]
-                click_this = uinput_key[-1]
-                # first = uinput_key[0]
-                # second = uinput_key[1]
-
-                for et in emit_these:
-                    device.emit(et, 1, syn=True)
-                    time.sleep(0.05)
-                    
-                # device.emit(first, 1, syn=True)
-                # time.sleep(0.05)
-                device.emit_click(click_this, syn=True)
-                # time.sleep(0.05)
-                # device.emit(first, 0, syn=True)
-                for et in emit_these:
-                    device.emit(et, 0, syn=True)
-                    time.sleep(0.05)
- 
-            else:
-                device.emit_click(uinput_key)
-
-            # emit a python ctrl c combo with python uinput
-            #device.emit_combo([uinput.KEY_LEFTCTRL, uinput.KEY_C])
 
                 
