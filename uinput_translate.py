@@ -87,6 +87,9 @@ UINPUT_TRANSLATE = {
     '\\': uinput.KEY_BACKSLASH,
     '.': uinput.KEY_DOT,
     ',': uinput.KEY_COMMA,
+    "'": uinput.KEY_APOSTROPHE,
+    '"': (uinput.KEY_LEFTSHIFT, uinput.KEY_APOSTROPHE),
+    
     '>' : (uinput.KEY_LEFTSHIFT, uinput.KEY_DOT),
     '<' : (uinput.KEY_LEFTSHIFT, uinput.KEY_COMMA),
     '-' : uinput.KEY_MINUS,
