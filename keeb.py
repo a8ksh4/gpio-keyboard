@@ -2,7 +2,7 @@
 
 #import collections
 from keymap import LAYERS, CHORDS, PINS, ENCODER
-from keys import SHIFTED, CTRLED, MOUSE_CODES #, CODES
+from keys import SHIFTED, MOUSE_CODES #, CODES
 import lgpio as sbc
 import os
 import subprocess as sp
@@ -21,6 +21,9 @@ SLEEP_TIME = 1 / FREQUENCY
 #CHORD_WAITTIME = 500
 HOLDTIME = 250
 # ONESHOT_TIMEOUT = 500
+ENCODER_ADDRS = [n for n, p in enumerate(PINS) if p in ENCODER]
+ENCODER_LAST = None
+ENCODER_SOLO = None
 BASE_LAYER = 0
 TICKER = 0
 EVENTS = []
@@ -30,7 +33,6 @@ OS_CTRL_PENDING = False
 OS_ALT_PENDING = False
 TIMER = None
 DEBUG = False
-DELAYED_INPUT = [] # interface for other tools to ask for something to be typed.
 
 
 # Strategery
@@ -79,6 +81,37 @@ def get_output_key(buttons, layer, tap):
 def time_ms():
     return int(time.time_ns() / 1000000)
 
+def checkEncoder(solo, last, pins):
+    active_pin = None
+    if last is None:
+        last = pins
+        return solo, last, active_pin
+
+    if solo is None and len(pins) == 1:
+        solo = pins[0]
+
+    if solo is None and len(pins) == 2:
+        last = pins
+        return solo, last, active_pin
+
+    if last == pins:
+        return solo, last, active_pin
+
+    # Something is happening!
+    #print('last', last, 'pins', pins, 'solo', solo)
+
+    if last == []:
+        #encoder activation
+        if len(pins) == 2:
+            active_pin = [p for p in pins if p != solo][0]
+        else:
+            active_pin = pins[0]
+        last = pins
+    else:
+        last = pins
+
+    return solo, last, active_pin
+
 
 def poll_keys(buttons_pressed, device):
     #print('FOO', foo)
@@ -88,14 +121,31 @@ def poll_keys(buttons_pressed, device):
     global EVENTS
     global PENDING_BUTTONS
     global PINS
+    global ENCODER_LAST
+    global ENCODER_SOLO
+    global ENCODER_ADDRS
     global OS_SHIFT_PENDING
     global OS_CTRL_PENDING
     global OS_ALT_PENDING
-    global DELAYED_INPUT
     global MOUSE_CODES
 
     # clock = time.ticks_ms()
     clock = time_ms()
+
+    if ENCODER:
+        # Figure out if any of the active button presses are for the encoder
+        encoder_buttons_pressed = [b for b in buttons_pressed if b in ENCODER_ADDRS]
+
+        # active_pin indicates if one of encoder_active is a legitimate button press
+        ENCODER_SOLO, ENCODER_LAST, active_encoder_button = checkEncoder(ENCODER_SOLO, ENCODER_LAST, encoder_buttons_pressed)
+        if active_encoder_button is not None:
+            print('Encoder active pin:', active_encoder_button)
+
+        # remove any encoder buttons from buttons_pressed if they are not legitimate
+        for ebp in encoder_buttons_pressed:
+            if ebp != active_encoder_button:
+                buttons_pressed.remove(ebp)
+
 
     current_layer = [BASE_LAYER,] + [e['layer'] for e in EVENTS if e['layer']]
     current_layer = current_layer[-1]
@@ -328,7 +378,10 @@ if __name__ == '__main__':
     sbc.group_claim_input(handle, PINS, sbc.SET_BIAS_PULL_UP | sbc.SET_ACTIVE_LOW)
     
 
-    print(UINPUT_ACTIVATE)
+    # print(UINPUT_ACTIVATE)
+    print('ENCODER:', ENCODER)
+    print('PINS:', PINS)
+    print('ENCODER_ADDRS:', ENCODER_ADDRS)
     with uinput.Device(UINPUT_ACTIVATE) as device:
         #foo, mask = sbc.group_read(handle, PINS[0])
         mask = None
