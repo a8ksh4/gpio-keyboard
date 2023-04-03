@@ -31,6 +31,7 @@ PENDING_BUTTONS = set()
 OS_SHIFT_PENDING = False
 OS_CTRL_PENDING = False
 OS_ALT_PENDING = False
+LK_SHIFT_ACTIVE = False
 TIMER = None
 DEBUG = False
 
@@ -120,13 +121,13 @@ def poll_keys(buttons_pressed, device):
     global BASE_LAYER
     global EVENTS
     global PENDING_BUTTONS
-    global PINS
     global ENCODER_LAST
     global ENCODER_SOLO
     global ENCODER_ADDRS
     global OS_SHIFT_PENDING
     global OS_CTRL_PENDING
     global OS_ALT_PENDING
+    global LK_SHIFT_ACTIVE
     global MOUSE_CODES
 
     # clock = time.ticks_ms()
@@ -237,14 +238,23 @@ def poll_keys(buttons_pressed, device):
     
     # Check Mouse Events
     mouse_x, mouse_y, mouse_wheel= 0, 0, 0
-    if [e for e in EVENTS if e['output_keys'] in ('_mlft', '_mdul', '_mddl')]:
-        mouse_x -= 5
-    if [e for e in EVENTS if e['output_keys'] in ('_mrgt', '_mdur', '_mddr')]:
-        mouse_x += 5
-    if [e for e in EVENTS if e['output_keys'] in ('_mup', '_mdul', '_mdur')]:
-        mouse_y -= 5
-    if [e for e in EVENTS if e['output_keys'] in ('_mdwn', '_mddl', '_mddr')]:
-        mouse_y += 5
+    # if [e for e in EVENTS if e['output_keys'] in ('_mlft', '_mdul', '_mddl')]:
+    #     mouse_x -= 5
+    # if [e for e in EVENTS if e['output_keys'] in ('_mrgt', '_mdur', '_mddr')]:
+    #     mouse_x += 5
+    # if [e for e in EVENTS if e['output_keys'] in ('_mup', '_mdul', '_mdur')]:
+    #     mouse_y -= 5
+    # if [e for e in EVENTS if e['output_keys'] in ('_mdwn', '_mddl', '_mddr')]:
+    #     mouse_y += 5
+
+    m_combos = ((-5, 0, '_mlft'), (5, 0, '_mrgt'), (0, -5, '_mup'), (0, 5, '_mdwn'),
+                (-5, -5, '_mdul'), (5, -5, '_mdur'), (-5, 5, '_mddl'), (5, 5, '_mddr'))
+
+    for x_off, y_off, key_name in m_combos:
+        for event in EVENTS:
+            if key_name in event['output_keys']:
+                mouse_x += x_off
+                mouse_y += y_off
 
     # Check Mouse Wheel Events:
     mouse_wheel = 0
@@ -252,15 +262,21 @@ def poll_keys(buttons_pressed, device):
         if event['status'] != 'mouse':
             continue
         
-        event['status'] = 'mouse_done'
         #if event['output_keys'] == '_mwup':
         if '_mwup' in event['output_keys']:
             print('mouse wheel up')
             mouse_wheel = 1
+            #event['status'] = 'mouse_done'
         #elif event['output_keys'] == '_mwdn':
         elif '_mwdn' in event['output_keys']:
             print('mouse wheel down')
             mouse_wheel = -1
+            #event['status'] = 'mouse_done'
+        else:
+            continue
+
+        event['status'] = 'mouse_done'
+
 
     # Unpress ended events
     for event in EVENTS:
@@ -324,6 +340,7 @@ def poll_keys(buttons_pressed, device):
             
     # Generate mouse movement
     if mouse_x or mouse_y:
+        print('mouse move', mouse_x, mouse_y)
         device.emit(uinput.REL_X, mouse_x, syn=False)
         device.emit(uinput.REL_Y, mouse_y, syn=True)
     if mouse_wheel != 0:
