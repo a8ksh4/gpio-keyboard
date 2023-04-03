@@ -34,7 +34,7 @@ There are a few important sections here:
 '''PINS''' list - ordered list of gpio pin numbers corresponding with the order of keys you want to use in your LAYERS
 TODO: Add support for "ROWS", "COLS", and DIODE_DIRECTION=ROWS2COLS/COLS2ROWS for matrix scanning.
 
-'''ENCODER''' list - the two encoder pins. Common is assumed to be connnected to ground, so the encoder pins will be set pull-high and active-low. 
+'''ENCODER''' list - the two encoder pins. Common is assumed to be connnected to ground, so the encoder pins will be set pull-high and active-low. Rotary encoders are treated like keys!  Put the encoder pins in your keymap and put thes same pins in the ENCODER list in the keymap file.  Then assign actions to eack "direction" like other keys.  You can have the encoder behave differently in each layer.  Only on encoder is currently supported, but it would be simple to support multiple encoders if requested. 
 
 '''LAYERS''' list of lists - A list of key maps that are switched between using layer changes.  Special keys can be used here.  For example:
     (1, 'c') - this says if held, change layers to layer 1, and if tapped, generate the character 'c'.  Note that the 'c' can be a part of chords defined below.  So the one key can do layer chanegs when held, directly generate a keypress, or be part of a chord.
@@ -64,3 +64,15 @@ Here's a list of supported things you can put in your keymap.  uinput has it's o
 
 Currently NOT supported:
 * '_shift', '_ctrl', '_alt' standard keys.  Currently only one-shot is supported.  I'll need to refactor the code a bit to support these keys.
+
+Keymap vs uinput_translate.py
+Every key/behavior in the keymap must have a corresponding entry in the uinput_translate file that says what will be passed to uinput for the behavior.  Normally this is a simple mapping like this...
+* Keymap has the letter 'a'.
+* Uinput_translate has:     'a': uinput.KEY_A,
+
+But we can do more interesting stuff like this:
+* Keymap has: '_alta', meaning alt + tab
+* Uinput_translate has: '_alta': (uinput.KEY_LEFTALT, uinput.KEY_TAB),
+
+When an entry has a list of actions like this, we'll emit the first key, then the second (and third ...), and unpress them in the same order.  
+
