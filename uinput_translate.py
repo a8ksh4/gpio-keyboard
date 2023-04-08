@@ -2,6 +2,7 @@ import uinput
 import string
 
 UINPUT_TRANSLATE = {
+    '': (),
     'a': uinput.KEY_A,
     'b': uinput.KEY_B,
     'c': uinput.KEY_C,
@@ -155,6 +156,8 @@ OTHERS = ( uinput.REL_X,
            uinput.REL_WHEEL,)
 UINPUT_ACTIVATE = set()
 for val in UINPUT_TRANSLATE.values():
+    if val == ():
+        continue
     if isinstance(val[0], (list, tuple)):
         UINPUT_ACTIVATE.update(val)
     else:

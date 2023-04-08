@@ -23,12 +23,12 @@ LAYERS = (
      '=', '-', '?',  '',  '', '', ''),
 
     # NAV
-    ('_pgup', '_home', '_up',   '_end',  '_mwup', '',
-     '_pgdn', '_left', '_down', '_rght', '_mwdn', '', ''),
+    ('_pgup', '_home', '_up',   '_end',  '_mwup', '_mwup',
+     '_pgdn', '_left', '_down', '_rght', '_mwdn', '_mwdn', ''),
 
     # MOUSE
-    ('_scup', '_mbt2', '_mup',  '_mbt1', '_mbt3', '',
-     '_scdn', '_mlft', '_mdwn', '_mrgt', '_mbt1', '', '')
+    ('_scup', '_mbt2', '_mup',  '_mbt1', '_mbt3', '_mwup',
+     '_scdn', '_mlft', '_mdwn', '_mrgt', '_mbt1', '_mwdn', '')
 )
 
 CHORDS = {
@@ -75,28 +75,47 @@ CHORDS = {
     ('a', 'i', 'y'):        "'",
     ('t', 'i'):             '!',
     ('(', ')'):             ':',
-    ('o', 't', 'r', 'a'):   '_tab',
+
+
+    ('o', 't', 'r', 'a'):   '_tab',         # Normal        *
     ('_pgdn','_home', 
-        '_up', '_end',):    '_tab',
-    ('a', 'e'):             '_entr',
-    ('_rght', '_end'):      '_entr',
-    ('s', 'e'):             '_os_ctrl',
+        '_up', '_end',):    '_tab',         # Directional
+    ('_mlft', '_mbt2', 
+        '_mup', '_mbt1'): '_tab',           # Mouse
+
+    ('a', 'e'):             '_entr',        # Normal        *
+    ('_end', '_rght'):      '_entr',        # Directional
+    ('_mbt1', '_mrht'):     '_entr',        # Mouse
+
+    ('s', 'e'):             '_os_ctrl',     # Normal        *
+    #('_home', '_rght'):     '_os_ctrl',     # Directional
+    ('_mbt2', '_mrgt'):     '_os_ctrl',     # Mouse
+
     ('s', 'i'):             '_alt',
     ('s', 't', 'r', 'e'):   '_os_shft',
-    ('r', 'e'):             '_bksp',
-    ('o', 'r', 'a'):        '_esc',
-    ('_pgdn', '_up', '_end'): '_esc',
-    ('a', 'r', 'e', 'y'):   '_f11',
-    ('_down', '_rght', '_up', '_end'): '_f11',
+
+    ('r', 'e'):             '_bksp',        # Normal        *
+    ('_up', '_rght'):       '_bksp',        # Directional
+    ('_mup', '_mrgt'):      '_bksp',        # Mouse
+
+    ('o', 'r', 'a'):        '_esc',         # Normal        *
+    ('_pgdn', '_up', '_end'): '_esc',       # Directional
+    ('_mlft', '_mup', '_mbt1'): '_esc',     # Mouse
+
+    ('a', 'r', 'e', 'y'):   '_f11',         # Normal        *
+    ('_down', '_rght', '_up', '_end'): '_f11',  # Directional
+    ('_mdwn', '_mrgt', '_mup', '_mbt1'): '_f11', # Mouse
+    
     ('r', 't', 'y', 'i'):   '_alta', #set('_alt', '_tab'),
     ('t', 's', 'i', 'o'):   '_salta', #set('_shft', '_alt', '_tab'),
+
     # Nav Layer:
     ('e', 'r', 'i'):            ('_set_base', 4),   
     ('_left', '_up', '_rght'):  ('_set_base', 0),
+
     # Mouse Layer:
     ('a', 't', 'y'):            ('_set_base', 5),
     ('_mbt1', '_mdwn', '_mbt2'): ('_set_base', 0),
-    ('_up', '_rght'):       '_bksp',
     ('_mup', '_mrgt'):      '_mdur', # Mouse diagonal up right
     ('_mup', '_mlft'):      '_mdul', # Mouse diagonal up left
     ('_mdwn', '_mrgt'):     '_mddr', # Mouse diagonal down right
