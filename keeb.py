@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 
 #import collections
-from keymap import LAYERS, CHORDS, PINS, ENCODER
+
+# Change keymap here for your layout...
+from keymap_artsey_left import LAYERS, CHORDS, PINS, ENCODER
 from keys import SHIFTED, MOUSE_CODES #, CODES
-import lgpio as sbc
+#import lgpio as sbc
 import os
 import subprocess as sp
 #import threading as th
@@ -15,7 +17,8 @@ CHIP = 0 # sholdn't need to change on raspberry pi
 
 FREQUENCY = 100 # Times per second to poll for changes
 SLEEP_TIME = 1 / FREQUENCY
-
+SERIAL_PORT = '/dev/ttyACM0'
+BATTERY_FILE = '/home/dan/.battery'
 #HOLD_TIME = 500
 #LAYER_HOLDTIME = 300
 #CHORD_WAITTIME = 500
@@ -347,42 +350,6 @@ def poll_keys(buttons_pressed, device):
         print('mouse wheel', mouse_wheel)
         device.emit(uinput.REL_WHEEL, mouse_wheel, syn=True)
 
-    # if keypress is None:
-    #     continue
-    # if isinstance(keypress, tuple):
-    #     uinput_key = [UINPUT_TRANSLATE[keypress[0]], 
-    #                     UINPUT_TRANSLATE[keypress[1]]]
-    # else:
-    #     uinput_key = UINPUT_TRANSLATE[keypress]
-
-    # print(keypress, uinput_key)
-    # if isinstance(uinput_key[0], (list, tuple)):
-    #     emit_these = uinput_key[:-1]
-    #     click_this = uinput_key[-1]
-    #     # first = uinput_key[0]
-    #     # second = uinput_key[1]
-
-    #     for et in emit_these:
-    #         device.emit(et, 1, syn=True)
-    #         time.sleep(0.05)
-            
-    #     # device.emit(first, 1, syn=True)
-    #     # time.sleep(0.05)
-    #     device.emit_click(click_this, syn=True)
-    #     # time.sleep(0.05)
-    #     # device.emit(first, 0, syn=True)
-    #     for et in emit_these:
-    #         device.emit(et, 0, syn=True)
-    #         time.sleep(0.05)
-
-    # else:
-    #     device.emit_click(uinput_key)
-
-    # emit a python ctrl c combo with python uinput
-    #device.emit_combo([uinput.KEY_LEFTCTRL, uinput.KEY_C])
-
-
-
 
 if __name__ == '__main__':
 
@@ -390,9 +357,12 @@ if __name__ == '__main__':
     if not os.path.exists('/sys/modules/uinput'):
         print('Loading uinput module...')
         sp.call(['modprobe', 'uinput'])
+    
+    # sp.call(['ampy', '-p', '/dev/ttyACM0', 'put', 'main.py'])
+    # sp.call(['ampy', '-p', '/dev/ttyACM0', 'reset'])
 
-    handle = sbc.gpiochip_open(CHIP)
-    sbc.group_claim_input(handle, PINS, sbc.SET_BIAS_PULL_UP | sbc.SET_ACTIVE_LOW)
+    # handle = sbc.gpiochip_open(CHIP)
+    # sbc.group_claim_input(handle, PINS, sbc.SET_BIAS_PULL_UP | sbc.SET_ACTIVE_LOW)
     
 
     # print(UINPUT_ACTIVATE)
@@ -401,17 +371,29 @@ if __name__ == '__main__':
     print('ENCODER_ADDRS:', ENCODER_ADDRS)
     with uinput.Device(UINPUT_ACTIVATE) as device:
         #foo, mask = sbc.group_read(handle, PINS[0])
-        mask = None
-        while True:
-            time.sleep(SLEEP_TIME)
+        # mask = None
+        # while True:
+            # time.sleep(SLEEP_TIME)
 
-            foo, new_mask = sbc.group_read(handle, PINS[0])
-            if new_mask == mask and not EVENTS:
-                continue
-            #same = mask ^ new_mask
-            active = [n for n in range(32) if new_mask & 2**n]
-            # keypress, mouse_x, mouse_y = poll_keys(active)
-            poll_keys(active, device)
+            # foo, new_mask = sbc.group_read(handle, PINS[0])
+            # if new_mask == mask and not EVENTS:
+            #     continue
+            # active = [n for n in range(32) if new_mask & 2**n]
+        p = sp.Popen(['cat', SERIAL_PORT], stdout=sp.PIPE, stderr=sp.PIPE)
+        while True:
+            line = p.stdout.readline().decode('utf-8').strip()
+            # with open(SERIAL_PORT, 'rb') as ser:
+            #     for line in ser.readlines():
+            print("line:", line)
+            if 'battery' in line:
+                voltage = line.split()[-1]
+                with open(BATTERY_FILE, 'w') as bat:
+                    bat.write(voltage)
+            elif 'buttons' in line:
+                buttons_status = line.split()[-8:]
+                buttons_status = [n for n, b in enumerate(buttons_status) if not int(b)]
+                print('buttons:', buttons_status)
+                poll_keys(buttons_status, device)
 
                 
 
