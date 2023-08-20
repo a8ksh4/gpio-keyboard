@@ -18,7 +18,7 @@ print(dir(sbc))
 sbc.exceptions = False
 
 handle = sbc.gpiochip_open(chip)
-sbc.group_claim_input(handle, PINS, sbc.SET_BIAS_PULL_UP | sbc.SET_ACTIVE_LOW)
+sbc.group_claim_input(handle, PINS, sbc.SET_PULL_UP | sbc.SET_ACTIVE_LOW)
 foo, mask = sbc.group_read(handle, PINS[0])
 while True:
     foo, new_mask = sbc.group_read(handle, PINS[0])

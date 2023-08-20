@@ -392,7 +392,8 @@ if __name__ == '__main__':
         sp.call(['modprobe', 'uinput'])
 
     handle = sbc.gpiochip_open(CHIP)
-    sbc.group_claim_input(handle, PINS, sbc.SET_BIAS_PULL_UP | sbc.SET_ACTIVE_LOW)
+    #sbc.group_claim_input(handle, PINS, sbc.SET_BIAS_PULL_UP | sbc.SET_ACTIVE_LOW)
+    sbc.group_claim_input(handle, PINS, sbc.SET_PULL_UP | sbc.SET_ACTIVE_LOW)
     
 
     # print(UINPUT_ACTIVATE)

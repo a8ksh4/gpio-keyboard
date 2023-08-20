@@ -99,7 +99,7 @@ UINPUT_TRANSLATE = {
     '+' : (uinput.KEY_LEFTSHIFT, uinput.KEY_EQUAL),
     '?' : (uinput.KEY_LEFTSHIFT, uinput.KEY_SLASH),
     
-
+    '_pipe': (uinput.KEY_LEFTSHIFT, uinput.KEY_BACKSLASH),
     '_entr': uinput.KEY_ENTER,
     '_left': uinput.KEY_LEFT,
     '_rght': uinput.KEY_RIGHT,
