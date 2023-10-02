@@ -3,7 +3,8 @@
 #import collections
 
 # Change keymap here for your layout...
-from keymap_artsey_left import LAYERS, CHORDS, PINS, ENCODER
+#from keymap_artsey_left import LAYERS, CHORDS, PINS, ENCODER
+from keymap_thumb import LAYERS, CHORDS, PINS, ENCODER
 from keys import SHIFTED, MOUSE_CODES #, CODES
 #import lgpio as sbc
 import os
@@ -18,6 +19,7 @@ CHIP = 0 # sholdn't need to change on raspberry pi
 FREQUENCY = 100 # Times per second to poll for changes
 SLEEP_TIME = 1 / FREQUENCY
 SERIAL_PORT = '/dev/ttyACM0'
+#SERIAL_PORT = '/dev/ttyAMA0'
 BATTERY_FILE = '/home/dan/.battery'
 #HOLD_TIME = 500
 #LAYER_HOLDTIME = 300
@@ -58,6 +60,9 @@ def get_output_key(buttons, layer, tap):
     global CHORDS
     #print('foo buttons:', buttons, 'layer:', layer, 'tap:', tap)
 
+    #buttons = [PINS[b] for b in buttons]
+    buttons = [PINS.index(b) for b in buttons]
+    print('modified:', buttons)
     mapped_buttons = [LAYERS[layer][b] for b in buttons]
     if len(mapped_buttons) > 1 or tap:
         # convert any hold-tap layer keys to just the (tap) key
@@ -311,13 +316,14 @@ def poll_keys(buttons_pressed, device):
                             not (k == '_ctrl' and ctrl_pressed)]
 
         uinput_codes = [UINPUT_TRANSLATE[k] for k in effective_keys 
-                            if k is not None
+                            if k and k is not None
                             and k not in MOUSE_CODES]
         # uinput_codes = [c if isinstance(c[0], tuple) else (c,) for c in uinput_codes]
         # uinput_codes = [c for l in uinput_codes for c in l]
 
         unpress_later = []
         for uinput_code in uinput_codes:
+            # if len(uinput_code) > 0 and isinstance(uinput_code[0], tuple):
             if isinstance(uinput_code[0], tuple):
                 temp_codes = uinput_code[:-1]
                 keep = uinput_code[-1]
@@ -386,16 +392,22 @@ if __name__ == '__main__':
             #     for line in ser.readlines():
             print("line:", line)
             if 'battery' in line:
-                voltage = line.split()[-1]
+                voltage = line.split()[-1][:4]
                 with open(BATTERY_FILE, 'w') as bat:
                     bat.write(voltage)
+
+            elif 'low_battery' in line:
+                sp.call(['wall', 'Low battery signal from Pico!'])
+
+            elif 'shutdown' in line:
+                sp.call(['wall', 'Shutdown signal from Pico!'])
+                time.sleep(1)
+                sp.call(['shutdown', 'now'])
+
             elif 'buttons' in line:
-                buttons_status = line.split()[-8:]
-                buttons_status = [n for n, b in enumerate(buttons_status) if not int(b)]
+                #buttons_status = line.split()[-8:]
+                #buttons_status = [n for n, b in enumerate(buttons_status) if not int(b)]
+                buttons_status = [int(b) for b in line.split() if b.isdigit()]
                 print('buttons:', buttons_status)
                 poll_keys(buttons_status, device)
 
-                
-
-
-                
