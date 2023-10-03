@@ -385,6 +385,15 @@ if __name__ == '__main__':
             # if new_mask == mask and not EVENTS:
             #     continue
             # active = [n for n in range(32) if new_mask & 2**n]
+        print("Sleep 5")
+        time.sleep(5)
+        #cmd = "echo -e '\\x04' > /dev/ttyACM0"
+        print("Sending ctrl d")
+        #sp.call(cmd, shell=True, encoding='utf-8')
+        with open('/dev/ttyACM0', 'w') as f:
+            f.write('\x04')
+
+        print("cat the serial")
         p = sp.Popen(['cat', SERIAL_PORT], stdout=sp.PIPE, stderr=sp.PIPE)
         while True:
             line = p.stdout.readline().decode('utf-8').strip()
@@ -399,9 +408,12 @@ if __name__ == '__main__':
             elif 'low_battery' in line:
                 sp.call(['wall', 'Low battery signal from Pico!'])
 
-            elif 'shutdown' in line:
-                sp.call(['wall', 'Shutdown signal from Pico!'])
-                time.sleep(1)
+            elif line.startswith('shutdown'):
+                line = line.split()
+                if len(line) > 1:
+                    message = ' '.join(line[1:])
+                    sp.call(['wall', 'message'])
+                time.sleep(2)
                 sp.call(['shutdown', 'now'])
 
             elif 'buttons' in line:
